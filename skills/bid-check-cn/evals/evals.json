@@ -1,0 +1,490 @@
+{
+  "skill_name": "bid-check-cn",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "请按 bid-check-cn 流程判断以下资格项：\n\n招标要求 A-12：投标人拟派驻的项目经理须取得二级及以上机电工程专业注册建造师执业证书。\n\n投标文件 P10 项目经理资格证书：等级'一级'，专业'机电工程'，证书名'中华人民共和国一级建造师职业资格证书'。\n\n只判断等级维度是否满足招标要求（'二级及以上'）。",
+      "expected_output": "AI 必须独立判定等级维度：一级 ≥ 二级，输出含 A-12.1 等级 ✅ 已核验满足的标记，且等级维度不被证书名等其他维度连带判错。",
+      "files": [],
+      "expectations": [
+        "Output contains an explicit positive judgment on the '等级' (grade) dimension, marked with the ✅ token",
+        "Output does NOT mark the grade dimension as ❌ or ⚠️"
+      ],
+      "_source_old": "E-001 + E-005 拆分 — 仅等级维度",
+      "_core_behavior": "等级维度独立判断（业务事实）"
+    },
+    {
+      "id": 2,
+      "prompt": "请按 bid-check-cn 流程判断以下资格项：\n\n招标要求 A-12：机电工程专业注册建造师执业证书。\n\n投标材料 P10：证书名'中华人民共和国一级建造师职业资格证书'，等级'一级'，专业'机电工程'。注意：当前检索尚未完成针对'注册'字样的针对性核查；证书主体页是否含'注册'二字、注册编号、注册有效期等关键字段，AI 尚未完成定向视觉核验。\n\n只判断证书性质维度（'职业资格证书'是否能证明当前'注册'状态）。",
+      "expected_output": "AI 必须区分'已取得职业资格'与'当前注册状态'两个独立维度。在尚未完成针对注册证明/注册信息的针对性检索前，对注册状态维度输出 🔎 AI 尚未完成检索（或同等未完成判断标记），不得直接判 ❌ 不满足。",
+      "files": [],
+      "expectations": [
+        "Output marks the registration-status dimension as 🔎 (AI 尚未完成检索) or equivalent incomplete-search marker",
+        "Output does NOT mark the registration-status dimension as ❌ (已不满足) given the prompt's '检索尚未完成' state",
+        "Output explicitly notes the gap between '取得职业资格' and '当前注册状态' as separate dimensions"
+      ],
+      "_source_old": "E-001 + E-005 拆分 — 仅证书性质/注册状态维度",
+      "_core_behavior": "职业资格证书本身不能证明当前注册状态；未完成检索时禁止直接判 ❌"
+    },
+    {
+      "id": 3,
+      "prompt": "请按 bid-check-cn 流程判断两个场景下的五态标记：\n\n场景 X：投标材料为 PDF，文字层搜索'注册建造师证书'无结果，AI 仅抽样第 X 页未找到。AI 尚未完成跨页搜索与定向视觉核验。\n\n场景 Y：投标材料为 PDF，AI 已完成全文文字搜索 + 跨页视觉核验 + L1 高清渲染，仍未发现证书扫描页。\n\n请分别给出五态判断。",
+      "expected_output": "场景 X → 🔎 AI 尚未完成检索；场景 Y → ❌ 已完成针对性检索仍未找到。两个场景的判断标记必须不同。",
+      "files": [],
+      "expectations": [
+        "Output marks 场景 X as 🔎 (AI 尚未完成检索)",
+        "Output marks 场景 Y as ❌ (已完成针对性检索仍未找到)",
+        "Output uses different five-state markers for the two scenarios (tokens differ)"
+      ],
+      "_source_old": "E-010 重写",
+      "_core_behavior": "🔎 vs ❌ 必须区分"
+    },
+    {
+      "id": 4,
+      "prompt": "请按 bid-check-cn 流程判断以下资格项：\n\n投标材料 PDF：文字层检索'注册建造师执业证书'无结果，但目录显示 P25-P27 是扫描页。注意 AI 尚未完成对 P25-P27 的定向视觉核验与高分辨率渲染。\n\n请判断 A-12 项目经理资格证书状态。",
+      "expected_output": "AI 必须输出 🔎 AI 尚未完成检索（继续定向视觉核验），不得直接判 ❌ 证书缺失。",
+      "files": [],
+      "expectations": [
+        "Output contains the 🔎 marker or equivalent '继续定向视觉核验' / 'continue visual verification' phrasing",
+        "Output does NOT contain ❌ 缺失 or '证书缺失' or 'completed targeted search, not found' phrasing"
+      ],
+      "_source_old": "E-002 重写",
+      "_core_behavior": "未读到图片 ≠ 缺失；文字层未找到不得直接判缺失"
+    },
+    {
+      "id": 5,
+      "prompt": "请按 bid-check-cn 流程判断以下资格项：\n\n投标材料 PDF：\n- P22 = 封面：'中华人民共和国一级建造师职业资格证书'\n- P23 = 持证人信息\n- P24 = 专业'机电工程' + 级别'一级'\n- P25 = 含'注册'二字 + 注册编号 + 注册有效期\n\n招标要求 A-12：机电工程专业注册建造师执业证书。\n\n请判断证书性质维度（基于全部可见页）。",
+      "expected_output": "AI 必须基于 P22-P25 全程检查后的可见信息给出证书性质判断。注意：P22 封面名含'职业资格'字样，P25 含'注册'二字+注册编号。AI 应将 P22 视为封面、P25 视为注册证书主体页，不得仅依据 P22 封面下结论。",
+      "files": [],
+      "expectations": [
+        "Output references at least 3 of the page numbers P22, P23, P24, P25",
+        "Output does NOT conclude the certificate-type dimension as ❌ solely based on the P22 cover",
+        "Output's judgment on the certificate-type dimension is grounded in the P25 '注册' content (i.e., references P25's register content)"
+      ],
+      "_source_old": "E-006 保留",
+      "_core_behavior": "证书跨页时不能只看封面"
+    },
+    {
+      "id": 6,
+      "prompt": "请按 bid-check-cn 流程判断以下 A-12 资格项（提示：包含多个子条件，请逐项独立判断）：\n\n招标 A-12 要求：二级及以上机电工程注册建造师 + B 证 + 6 个月社保。\n\n投标材料：\n- 等级：一级（已识别）\n- 专业：机电工程（候选页已渲染，但'专业'字段视觉识别失败）\n- 证书名：含'职业'二字（非'注册'）— 注意：AI 尚未完成针对注册证明的针对性检索\n- B 证：浙建安B(2025)3400532（已识别）\n- 社保：2026-01~2026-03（已识别）\n\n请按 bid-check-cn 流程逐子项判断。",
+      "expected_output": "AI 必须对每个子条件独立给出五态判断。注意：证书名虽含'职业'二字，但 AI 尚未完成注册证明的针对性检索，因此证书性质/注册状态维度应判 🔎 AI 尚未完成检索，不得直接判 ❌。",
+      "files": [],
+      "expectations": [
+        "Output gives the grade dimension (一级 ≥ 二级) an independent ✅ marker",
+        "Output gives the B-cert (B 证) dimension an independent ✅ marker",
+        "Output gives the social-security (社保) dimension an independent ✅ marker",
+        "Output gives the certificate-type / registration-status dimension a 🔎 marker (or equivalent incomplete-search marker), NOT ❌",
+        "Output gives the major (专业) dimension a ⚠️ marker (visual recognition failed)",
+        "Output contains at least 3 sub-item labels (A-12.x or equivalent numbered sub-items)"
+      ],
+      "_source_old": "E-005 拆分 — 子条件独立判断 + 注册状态边界",
+      "_core_behavior": "子条件独立判断；未完成检索时不得直接判 ❌ 注册状态"
+    },
+    {
+      "id": 7,
+      "prompt": "请按 bid-check-cn 流程完成以下审核并输出一页摘要：\n\n投标文件目录页码标注与正文实际页码存在多处不一致。\n\n请按 bid-check-cn 全流程审核该投标文件，并输出一页摘要（含范围声明与风险摘要）。",
+      "expected_output": "AI 在报告里只描述事实（'目录页码与正文不一致'），不得自动给新经验分配 P-XXX / C-XXX / R-XXX / 候选-XXX 等编号。",
+      "files": [],
+      "expectations": [
+        "Output does NOT contain any 'P-0\\d\\d', 'C-0\\d\\d', 'R-0\\d\\d', or '候选-0\\d\\d' style identifier",
+        "Output describes the fact (directory-page vs body-page inconsistency) without using an unauthorized ID"
+      ],
+      "_source_old": "E-007 重写",
+      "_core_behavior": "报告里不出现未授权编号"
+    },
+    {
+      "id": 8,
+      "prompt": "请按 bid-check-cn 流程生成合规检查报告：\n\n已知：外部历史案例库存在'投标保证金到账错误'条目（编号 C-005，外部案例库）。\n\n当前招标文件（摘要）——全篇未提及'投标保证金''保证金''履约保证金'等任何与保证金相关的字样。\n\n同时：招标原文未规定'业绩合同金额下限' / '招标控制价 = 业绩合同金额上限' / '项目经理证书必须有手写签名日期'。\n\n请按 bid-check-cn 流程生成合规检查报告（含清单 A 与一页摘要）。",
+      "expected_output": "AI 不得因为外部历史案例库存在保证金相关条目，就在清单 A 中加入'投标保证金'项，也不得在报告中将'投标保证金到账'列为风险项。清单 A 项数严格等于当前招标文件'资格要求'章节列出的项数。同时：AI 不得自行增加'业绩合同金额与招标控制价 X 元必须一致' / '缺签名日期 = 资格否决'等**招标未规定**的审核条件。判定'招标未规定 X' 必须完成 v3.0.2 R4 6 类穷尽搜索全部无命中。",
+      "files": [],
+      "expectations": [
+        "Output does NOT include '投标保证金到账' or equivalent phrasing as a risk item",
+        "Output does NOT contain '请补充保证金' or '须补充保证金资料' or equivalent prompting",
+        "Output's 清单 A count equals the count of items in the current tender document's '资格要求' section",
+        "Output does NOT add '业绩合同金额必须等于招标控制价' as a qualification check (v3.0.2 加强)",
+        "Output does NOT add '项目经理证书缺签名日期 = 否决' as a qualification check (v3.0.2 加强)",
+        "Output explicitly lists the 6 穷尽搜索 actions it executed before declaring '招标未规定' (v3.0.2 R4)"
+      ],
+      "_source_old": "E-003 保留 + v3.0.2 加强（禁止 AI 自行增加审核条件 + R4 穷尽搜索前置）",
+      "_core_behavior": "历史案例不能创造当前项目要求；AI 不得自行增加审核条件；判定未规定须 6 类穷尽搜索"
+    },
+    {
+      "id": 9,
+      "prompt": "请按 bid-check-cn 流程判断以下资格项：\n\n招标 A-12 注释：'若投标人提供的注册建造师电子证书超过使用有效期、未在个人签名处手写签名或手写签名与签名图像笔迹存在差异的，资格审查时应通过全国建筑市场监管公共服务平台或各省规定的查询渠道查询持证人注册建造师注册信息。'\n\n投标材料：实体纸质证书扫描件（非电子证书）。\n\n请判断该 A-12 资格项。",
+      "expected_output": "AI 必须识别该例外条款仅适用于'电子证书'，不得把'电子证书例外条款'机械套用到实体纸质证书（也不得反向推导'实体证书可豁免某些核验'）。",
+      "files": [],
+      "expectations": [
+        "Output identifies the exception clause scope as '电子证书' (electronic certificate) only",
+        "Output does NOT mechanically apply the 'electronic certificate exception' to the physical certificate",
+        "Output does NOT derive from the exception clause that the physical certificate can be exempted from any verification",
+        "Output does NOT derive from the exception clause additional verification requirements for the physical certificate that are not stated in the tender document (e.g., must NOT require handwritten-signature verification on the physical certificate just because the exception mentions 手写签名/笔迹差异; must NOT require platform verification on the physical certificate just because the exception mentions 超期→平台核验)"
+      ],
+      "_source_old": "E-004 保留",
+      "_core_behavior": "电子证书例外条款不得机械套用到非电子证书（不创造额外通用要求）"
+    },
+    {
+      "id": 10,
+      "prompt": "请按 bid-check-cn 流程生成清单 A：\n\n招标资格要求（邀请函顺序，共 14 项）：\n- A-01 独立承担民事责任能力\n- A-02 依法缴纳税收\n- A-03 依法缴纳社保\n- A-04 法定代表人身份\n- A-05 营业执照\n- A-06 财务审计报告\n- A-07 管理体系认证\n- A-08 类似项目业绩\n- A-09 安全生产许可证\n- A-10 电力承装（修、试）许可证\n- A-11 信誉要求\n- A-12 项目经理（二级及以上机电工程注册建造师 + B 证 + 6 个月社保）；含电子证书例外注释\n- A-13 业绩要求\n- A-14 信用截图加盖公章\n\n请按 bid-check-cn 流程生成清单 A。",
+      "expected_output": "清单 A 共 14 项（A-01 ~ A-14）；A-12 内部展开为 A-12.x 证据点；电子证书例外注释归入 A-12 内部，不单独成项。",
+      "files": [],
+      "expectations": [
+        "Output's 清单 A contains exactly 14 unique items (A-01 through A-14), counted by distinct A-NN identifiers",
+        "Output uses A-12.x sub-notation (e.g., A-12.1, A-12.2 ...) for the A-12 sub-conditions",
+        "Output does NOT extend the count to 19, 22, or any number other than 14"
+      ],
+      "_source_old": "E-009 保留",
+      "_core_behavior": "拆分不改变原文结构；清单 A 项数严格相等"
+    },
+    {
+      "id": 11,
+      "prompt": "请按 bid-check-cn 流程生成合规检查报告：\n\n用户在 Step 0.5 声明：本次审核范围仅含'投标文件内容核验'；明确不要求检查实物签章、装订、密封、保证金到账、证书真伪。\n\n投标文件扫描件中包含多处'（盖章）''（签字或盖章）'等占位表述；信用截图 P43-P46 未明确视觉确认是否加盖公章。\n\n请按 bid-check-cn 流程生成报告。",
+      "expected_output": "报告开头 AI 报告声明逐项复述本次范围（含'本次未检查签章'）。**全报告所有位置**（模块 1 一页摘要 / 模块 2 资格 / 必核清单 / 建议清单 / 人工确认 / 模块 7）均**不得**出现'公章未盖 / 信用截图是否加盖公章 / 履约担保 / 投标保证金到账 / 装订 / 密封 / 骑缝章'等任何范围外字样。模块 7 不展示。必须生成 `output/_work/scope_self_check.md` 自检报告且 grep 命中行号 = 0。",
+      "files": [],
+      "expectations": [
+        "Output's report header contains a scope statement explicitly noting '本次未检查签章' (or equivalent 'seal not inspected this round')",
+        "Output's risk summary or risks section does NOT list '未盖章' (unsigned) as an independent risk item",
+        "Output does NOT contain a Module 7 (签章 / 装订 / 密封 / 保证金到账) section",
+        "Output does NOT list '信用截图是否加盖公章' in 必核清单 (v3.0.2 加强)",
+        "Output does NOT list '投标保证金是否实际到账' in 必核清单 or 人工确认 (v3.0.2 加强)",
+        "Output references the path of scope_self_check.md in the report (v3.0.2 强制)"
+      ],
+      "_source_old": "E-008 保留 + v3.0.2 加强（必核/建议/人工确认 三处全报告零出现）",
+      "_core_behavior": "审核范围声明闸门；范围外事项全报告零出现（含必核/建议/人工确认）"
+    },
+    {
+      "id": 12,
+      "prompt": "请按 bid-check-cn 流程审核投标文件，并说明过程中文件如何落盘：\n\n当前项目目录结构：\n- input/：用户原始招标文件与投标文件\n- output/：AI 输出区\n\nAI 在审核中产生了以下文件：\n- input/_extracted.docx（AI 抽取后存入）\n- _parse_cfb.js、_extract_text.js、_render_pdf.js（项目根目录）\n- package.json / package-lock.json / node_modules（项目根目录）\n- output/_pages/p-001.png 等渲染图（**v3.0.2 视为违规**，应改为 output/_work/pages/）\n- input/_shunxin.txt 等历史残留（v3.0.2 视为历史污染，不得记成「本轮新增」）\n- 审核报告只贴在聊天里，output/ 没有正式报告文件\n\n请判定这些文件落盘位置是否合规。",
+      "expected_output": "AI 必须判定：input/_extracted.docx 违规（input/ 是只读用户输入区）；项目根目录 *.js / package*.json / node_modules 违规（应进入 Skill 的 scripts/ 或 output/_work/）；output/_pages/p-XXX.png 违规（应进入 output/_work/pages/，v3.0.2 收口）；input/_shunxin.txt 视为历史污染（仅记录 + 建议清理，不擅自删除）；output/ 必须有正式审核报告.md。报告附录必须含'input/ 残留清单'。",
+      "files": [],
+      "expectations": [
+        "Output identifies input/_extracted.docx as a violation (input is read-only user input area)",
+        "Output identifies the project-root *.js / package.json / node_modules as a violation (should be in Skill scripts/ or output/_work/, never project root)",
+        "Output requires a formal report file at output/审核报告.md",
+        "Output flags output/_pages/p-001.png as a violation; the correct location is output/_work/pages/ (v3.0.2 加强)",
+        "Output identifies input/_shunxin.txt as historical pollution (not a current-run violation), and records it in the report's 'input/ 残留清单' (v3.0.2 新增)",
+        "Output does NOT instruct that files should be written to input/ or the project root"
+      ],
+      "_source_old": "E-NEW 该项目实战教训 + v3.0.2 加强（_work/pages/ 收口 + 残留清单）",
+      "_core_behavior": "input/ 只读；过程文件不得污染项目根；渲染图统一 _work/pages/；正式报告必须落盘；input/ 残留视为历史污染"
+    },
+    {
+      "id": 13,
+      "prompt": "请按 bid-check-cn 流程生成最终审核报告。报告已落盘到 output/审核报告.md。\n\n请描述报告首页必须包含什么内容？",
+      "expected_output": "AI 必须列出首页四件事：(1) 是否建议提交（建议投标/建议补正后投标/建议放弃投标）；(2) 必须修改项（含严重程度 🔴 必须修改 / 🟠 重要 / 🟡 建议）；(3) 必须核实项（人工确认 + AI 客观无法完成事项）；(4) 建议修改项 + 严重程度。",
+      "files": [],
+      "expectations": [
+        "Output lists '是否建议提交' as the first item on the report home page",
+        "Output uses the severity-tag scheme 🔴 必须修改 / 🟠 重要 / 🟡 建议 for modification items",
+        "Output distinguishes '必须修改项' from '必须核实项' as separate categories",
+        "Output mentions '建议修改项 + 严重程度' as a fourth category"
+      ],
+      "_source_old": "E-NEW 该项目实战教训",
+      "_core_behavior": "报告首页必须一眼看到是否提交 / 必须改 / 必须核 / 建议改 四件事"
+    },
+    {
+      "id": 14,
+      "prompt": "请按 bid-check-cn 流程审核投标文件。\n\n**v3.0.2 加测场景**：项目启动时检查项目目录，`output/_work/frozen_checklist.md` 文件**不存在**（无任何既有冻结清单）。\n\n请判定 AI 是否应进入 Stage 2 资格审核？",
+      "expected_output": "AI 不得'一边审核投标文件一边重新生成 frozen_checklist.md'——这违反'先冻结后审核'原则。AI 必须明确停止 Stage 2，先完成 Stage 1（生成清单 A / 清单 B / 清单 C）+ Stage 1.5（写入 `output/_work/frozen_checklist.md` 并落时间戳），然后才进入 Stage 2。最终报告附录必须显式记录 frozen 路径 + 落地时间戳，且 Stage 2 启动时间戳晚于 frozen 落地时间戳。",
+      "files": [],
+      "expectations": [
+        "Output does NOT proceed to Stage 2 without a prior-frozen checklist file",
+        "Output does NOT generate the frozen checklist concurrently with Stage 2 (i.e., does NOT '一边审核一边冻结')",
+        "Output requires Stage 1 → Stage 1.5 → Stage 2 sequence, with frozen_checklist.md written and timestamped BEFORE Stage 2 starts",
+        "Output reports the frozen path + timestamp in the report's 附录 frozen 同源校验 (v3.0.2 新增)",
+        "Output does NOT silently restructure the frozen checklist (4 items / 40 points → 8 items / 60 points) (v3.0.1 原始 E-014)",
+        "Output produces a 'frozen-conflict report' naming the conflict clause and source-text section (v3.0.1 原始 E-014)",
+        "Output defers to user judgment before changing the frozen scale (v3.0.1 原始 E-014)",
+        "Output does NOT proceed with new sub-scoring under the new structure (v3.0.1 原始 E-014)"
+      ],
+      "_source_old": "E-NEW 该项目实战教训 + v3.0.2 加强（frozen 文件前置存在性校验 + 同源约束）",
+      "_core_behavior": "审查表总分/项数冻结禁止重做；frozen 必须先于 Stage 2 存在；frozen 与最终报告必须同源"
+    },
+    {
+      "id": 15,
+      "prompt": "请按 bid-check-cn 流程审核投标文件。Stage 2 资格审核未完全闭合（仍有 2 项处于 🔎 AI 尚未完成检索 / ⚠️ 关键字段无法视觉识别）。\n\n请判定 AI 是否应进入 Stage 3 商务评分并给出 B-02 业绩项的具体分数。",
+      "expected_output": "AI 不得在 Stage 2 未完成时进入 Stage 3 给出 B-02 分数；必须先完成 Stage 2 五态闭合，或把未闭合项明确登记到模块 8 人工确认事项，再进入 Stage 3。未完成 → 不得分。",
+      "files": [],
+      "expectations": [
+        "Output does NOT award a B-02 score before Stage 2 closure",
+        "Output requires Stage 2 五态 closure (✅ / 🔵 / 🔎 / ⚠️ / ❌) before Stage 3 entry",
+        "Output requires unresolved items to be explicitly logged in Module 8 before proceeding",
+        "Output does NOT use optimistic 'evidence not yet read = assume satisfies' reasoning"
+      ],
+      "_source_old": "E-NEW 该项目实战教训",
+      "_core_behavior": "Stage 间衔接闸门；Stage 2 未完成不得进入 Stage 3"
+    },
+    {
+      "id": 16,
+      "prompt": "请按 bid-check-cn 流程审核投标文件。\n\n招标原文仅规定：项目经理须取得二级及以上机电工程专业注册建造师执业证书；B 证；6 个月社保。未对签名日期做任何规定。\n\n投标材料：项目经理证书扫描件未见落款签名日期。\n\n请判断是否构成资格否决。",
+      "expected_output": "AI 不得仅依据招标未规定的'签名日期'要求单独创造资格否决条件。签名日期可以核对（如已可识别），但不得在招标未规定时把'缺签名日期'单独判为否决。",
+      "files": [],
+      "expectations": [
+        "Output does NOT mark '缺签名日期' as a qualification-rejection reason",
+        "Output notes that the tender document does not specify a signature-date requirement",
+        "Output does NOT derive additional unsigned-certificate requirements from the 电子证书 exception clause"
+      ],
+      "_source_old": "E-009 加强（该项目实战教训）",
+      "_core_behavior": "禁止从现有条款派生未规定要求；签名日期若无招标规定不得判否决"
+    },
+    {
+      "id": 17,
+      "prompt": "请按 bid-check-cn 流程审核投标文件。\n\n招标原文第 189 行明确：'本次招标**接受**联合体投标。'\n\nAI 仅做了：\n[1] 在 zb_text.txt 中 grep '中城恒业' → 0 命中\n[2] 在 zb_text.txt 中 grep '联合体共同投标协议书' → 0 命中\n[3] 未渲染任何投标文件页面检查实际联合体协议\n\nAI 判定：'本次为**单独投标**'。\n\n请判断 AI 判定是否合规。",
+      "expected_output": "AI 不得仅凭文字层 2 次 grep 未命中即推断'本次为单独投标'。判定'无联合体' 必须完成 v3.0.2 R4 6 类穷尽搜索全部无命中：(1) 全文 grep + 同义词（中英文 / 全角半角）；(2) 目录 / 页码索引定位候选页；(3) 候选页 L1 高清渲染；(4) 跨页连续检查；(5) 视觉核验关键字段（联合体协议应含双方单位全称 / 主办方 / 责任分工）；(6) 结构化判断 → 至少独立搜索 3 处证据点（联合体协议书 / 投标文件主体封面 / 业绩一览表）。**任一未搜就判定 → 等同 AI 创造条件**。",
+      "files": [],
+      "expectations": [
+        "Output does NOT judge '单独投标' based on only 2 grep attempts without rendering and visual verification (v3.0.2 R4)",
+        "Output lists the 6 穷尽搜索 actions it executed before declaring 'no consortium' (v3.0.2 R4)",
+        "Output does NOT infer '不存在' from '未搜到' (v3.0.2 核心)",
+        "Output may still conclude '单独投标' if all 6 categories are exhausted — but only after explicitly listing them"
+      ],
+      "_source_old": "E-NEW v3.0.2 新增（该项目'中城恒业'二次回归教训）",
+      "_core_behavior": "🔎 退出条件 6 类穷尽搜索全部完成才能判定'未搜到 = 不存在'；结构化判断不得仅凭文字 grep"
+    },
+    {
+      "id": 18,
+      "prompt": "你作为测试评估人，对某次 Skill 修改给出验收结论。\n\n**情况 A**：你未运行真实 LLM 行为测试，仅在 Skill 文档中找到对应规则条款。\n**情况 B**：你运行了真实 LLM 行为测试，但产物自相矛盾：报告里同时出现'Step 0.5 排除项已全局零出现'与'必核清单中包含 V7 信用截图盖章'。\n**情况 C**：你运行了真实 LLM 行为测试，产物与预期一致，且无自相矛盾。\n\n请分别给出 PASS / FAIL / NOT PROVEN 判定。",
+      "expected_output": "情况 A → **NOT PROVEN**（静态规则存在 ≠ 行为验证）；情况 B → **FAIL**（自相矛盾证据禁止 PASS）；情况 C → **PASS**。禁止用'Skill 文本含 X 条'代替真实运行验证 PASS；禁止自相矛盾证据判 PASS。",
+      "files": [],
+      "expectations": [
+        "Output marks 情况 A as NOT PROVEN (static rule existence ≠ behavior verification)",
+        "Output marks 情况 B as FAIL (self-contradicting evidence prohibits PASS)",
+        "Output marks 情况 C as PASS",
+        "Output does NOT mark any of the three as PASS for 情况 A",
+        "Output does NOT mark 情况 B as PASS",
+        "Output does NOT use '规则已存在' as a substitute for '行为已验证'"
+      ],
+      "_source_old": "E-NEW v3.0.2 新增（该项目'10/10 PASS'自相矛盾教训）",
+      "_core_behavior": "PASS/FAIL/NOT PROVEN 三态证据等级；静态规则 ≠ 行为验证；自相矛盾禁止 PASS"
+    },
+    {
+      "id": 19,
+      "prompt": "请按 bid-check-cn 流程处理以下场景：\n\n招标文件要求：机电工程专业二级及以上**注册**建造师。\n\n投标文件：\n- P58 二级建造师**注册**证书（姓名 <NAME> / 注册编号 <CERT_NO> / 聘用企业 <COMPANY> / 注册专业 机电工程）\n- P59 二级建造师**执业**资格证书（姓名 <NAME> / 管理号 <CERT_NO>）\n\n视觉调用结果（脱敏）：\n- P58: rejected (视觉 API 1026 prompt sensitive)\n- P59: ok (识别为\"二级建造师执业资格证书\")\n\n请判断 A-05 项目经理资质是否满足。",
+      "expected_output": "AI 不得仅凭 P59 单独判定 A-05。P58 视觉被拒必须触发 1 次重试（脱敏 prompt），重试仍失败 → A-05 必须标记为待人工核验，evidence_manifest 中该评分项 status=vision_blocked 或 partial。报告**不得**引用 R-Candidate-002 / 候选-004 等候选规则作为正式判断结论。",
+      "files": [
+        "references/eval-fixtures/cert-packet.md"
+      ],
+      "expectations": [
+        "Output marks P58 visual rejection as triggering retry (脱敏 prompt)",
+        "Output produces evidence_manifest.json entry with status=vision_blocked or partial for P58-P59 cert packet",
+        "Output does NOT judge A-05 based solely on P59 content",
+        "Output does NOT cite R-Candidate-002 or 候选-004 as formal judgment basis"
+      ],
+      "_source_old": "E-023 v3.3.1 新增（该项目 P58 真实教训）",
+      "_core_behavior": "连续证书页聚合；视觉失败重试；候选规则隔离"
+    },
+    {
+      "id": 20,
+      "prompt": "请按 bid-check-cn 流程处理以下场景：\n\n招标文件要求：业绩时间 2021/1/1 至今已投运 ≥ 960kW 充电桩项目。\n\n投标文件 P48 工程竣工验收单（手写日期）：\n- 实际手写：2025.12.9\n- 视觉初读：2023.12.9（手写 5 误识为 3）\n- 同一项目 P45 合同签约日：2025-11-11\n\n视觉调用结果：\n- P48: ok（识别为 '2023-12-09'，与签约日矛盾）\n\n请判断 A-08 业绩时间逻辑是否构成重大风险。",
+      "expected_output": "P48 手写日期字段标记 source=vision_handwritten, confidence=low。触发二次复核（放大 2.5x + 独立第二次识别）。二次结果仍 2023-12-09 → 标记 unconfirmed，写入 evidence_manifest.low_confidence_pages。报告结论：⚠️ \"AI 无法判断是否为录入错误，请人工核对原件\"，**不得**直接升级为废标 / 资格否决。",
+      "files": [
+        "references/eval-fixtures/handwritten-date.md"
+      ],
+      "expectations": [
+        "Output tags P48 date field with source=vision_handwritten, confidence=low",
+        "Output triggers 2nd-pass recheck (2.5x zoom + independent 2nd recognition)",
+        "Output marks field as unconfirmed if recheck inconclusive; writes to low_confidence_pages in manifest",
+        "Output does NOT upgrade to disqualification based on single-pass handwritten misread",
+        "Output does NOT use 合同后于竣工 2 年 as deterministic statement"
+      ],
+      "_source_old": "E-024 v3.3.1 新增（该项目 P48 真实教训）",
+      "_core_behavior": "手写字段低置信度；二次放大复核；不升级为废标"
+    },
+    {
+      "id": 21,
+      "prompt": "请按 bid-check-cn 流程处理以下场景：\n\n招标文件 B-03：2021/1/1 至今获得实用新型专利证书或软件著作权登记证书（仅限充电桩、电力类），一项 5 分，最多 15 分；需提供证书扫描件。\n\n投标文件目录：（六）其它投标人认为需要提交和说明的文件和/或资料 → 1．工程研发能力（页码 54-55）\n\nrecon 输出：\n- P54: is_visual_candidate=true, image_count=1, max_image_frac=0.62\n- P55: is_visual_candidate=true, image_count=1, max_image_frac=0.64\n\n请判断 B-03 工程研发能力评分。",
+      "expected_output": "P54、P55 必须全部进入渲染 + 视觉调用。evidence_manifest 中 B-03 status 必须是 complete 或 vision_blocked，不能是 incomplete。报告 B-03 章节基于真实视觉结果给出分数。章节别名（六）其它投标人认为需要提交和说明的文件和/或资料必须映射到 B-03 等相关评分项。",
+      "files": [
+        "references/eval-fixtures/other-materials-ip.md"
+      ],
+      "expectations": [
+        "Output triggers rendering + visual call for both P54 and P55",
+        "Output produces evidence_manifest.json entry with status=complete or vision_blocked (NOT incomplete) for P54-P55",
+        "Output maps chapter alias 其他资料 to B-03 scoring item",
+        "Output does NOT skip P54/P55 visual calls",
+        "Output does NOT write '未发现' if manifest status=incomplete"
+      ],
+      "_source_old": "E-025 v3.3.1 新增（该项目 P54-P55 真实教训）",
+      "_core_behavior": "候选页消费门禁；章节别名映射；incomplete 状态禁止声称视觉核验"
+    },
+    {
+      "id": 22,
+      "prompt": "请按 bid-check-cn 流程处理以下场景：\n\n任意评分项准备判 0 分 / 未发现 / 不满足。\n\n请说明需要执行的强制证据步骤。",
+      "expected_output": "Stage 2 末尾必须调用 scripts/py/evidence_manifest.mjs 生成 _work/evidence_manifest.json。报告生成前读取该 manifest。对每条 0 分结论，验证对应评分项 status ∈ {complete, vision_blocked}。status=incomplete 时报告不得声称已视觉核验未发现，必须改为 ⚠️ 未视觉核验 — 候选页未消费。",
+      "files": [
+        "references/eval-fixtures/evidence-completion.md"
+      ],
+      "expectations": [
+        "Output mandates evidence_manifest.json generation before report",
+        "Output reads manifest before generating each 0-score conclusion",
+        "Output refuses to write 已视觉核验未发现 if manifest status=incomplete",
+        "Output rewrites such claims to ⚠️ 未视觉核验 — 候选页未消费"
+      ],
+      "_source_old": "E-026 v3.3.1 新增（该项目报告已视觉核验误称教训）",
+      "_core_behavior": "证据完整性门禁；incomplete 状态报告必须改写"
+    },
+    {
+      "id": 23,
+      "prompt": "请按 bid-check-cn 流程处理以下场景：\n\n第二次运行同一项目，输入文件 SHA-256 未变化，上一次运行的 _work/ 已存在有效产物（recon.json / bid_text.txt / pages/）。\n\n请说明应该执行的操作。",
+      "expected_output": "计算输入 SHA-256，对比上一次 manifest 中的输入哈希。哈希一致 → 复用 _work/bid.recon.json、_work/bid_text.txt、已渲染页面。仅重新执行 Stage 2/3/4 中需要新视觉结果的步骤。不得整体清空 _work 重建。",
+      "files": [
+        "references/eval-fixtures/resume-cache.md"
+      ],
+      "expectations": [
+        "Output computes input SHA-256 and compares to previous manifest",
+        "Output reuses _work artifacts when hash matches",
+        "Output does NOT delete _work/ wholesale and rebuild",
+        "Output records cache_hit=true when reusing"
+      ],
+      "_source_old": "E-027 v3.3.1 新增（该项目无依据清空 _work 教训）",
+      "_core_behavior": "哈希复用；缓存命中记录；不得整体清空 _work"
+    },
+    {
+      "id": 24,
+      "prompt": "请按 bid-check-cn 流程完成以下审核并落盘报告：\n\n用户在 Step 0.5 声明仅做'资格 + 商务'（不含技术）。Stage 2 资格审核 + Stage 3 商务评分已完成。\n\n请说明 Report Gate 的执行要求与报告落盘条件。",
+      "expected_output": "主体审核完成后、最终报告生成前必须执行 [Report Gate]｜历史案例反向查漏。必须落盘 _work/report_gate.md（包含入口路径 / 读取时间戳 / 扫描清单 / 命中或无命中声明 / 读取失败声明）。_work/report_gate.md 未落盘 → 报告不得落盘。不强制要求'历史案例提醒'小节出现在报告中（仅命中真实案例时才插入）。",
+      "files": [
+        "references/eval-fixtures/RG-024-gate-required.md"
+      ],
+      "expectations": [
+        "Output mandates _work/report_gate.md 落盘 before report generation",
+        "Output identifies Report Gate as the only external case-library call point",
+        "Output does NOT require '历史案例提醒' section when no case is hit",
+        "Output refuses report落盘 if report_gate.md is missing"
+      ],
+      "_source_old": "E-024 v3.3.2 新增（真实运行根因排查：历史案例调用流程收口）",
+      "_core_behavior": "Report Gate 必在报告生成前执行；产物落盘；8模块结构稳定"
+    },
+    {
+      "id": 25,
+      "prompt": "请按 bid-check-cn 流程完成以下审核：\n\nReport Gate 扫描发现外部案例库中 C-002'资格人员'案例被触发（涉及人员资质核验）。当前投标文件 9.4 2) 专职安全人员 一节实际只提供 1 名（柳荣城），而招标要求 3 名。\n\n请说明 Report Gate 命中后的处理流程。",
+      "expected_output": "Report Gate 命中 C-002 → 展开该案例详细章节 → 历史案例只能作为提醒（AI 不得直接基于案例库生成 ❌ 不满足）→ 必须回到当前投标文件原文 / 招标原文核实直接证据 → 核实结果必须写入 _work/report_gate.md → 报告中（如果命中）插入'历史案例提醒'小节，但不构成最终不符合判断的直接证据。",
+      "files": [
+        "references/eval-fixtures/RG-025-gate-hit-verify.md"
+      ],
+      "expectations": [
+        "Output treats case-library hit as reminder, not as direct judgment",
+        "Output requires return-to-original verification (current tender + bid files)",
+        "Output writes verification result into _work/report_gate.md",
+        "Output does NOT use case-library number as direct disqualification evidence"
+      ],
+      "_source_old": "E-025 v3.3.2 新增（真实运行根因排查：Report Gate 命中后回原文件复核）",
+      "_core_behavior": "Report Gate 命中案例后必须回原文件复核；案例仅作提醒"
+    },
+    {
+      "id": 26,
+      "prompt": "请按 bid-check-cn 流程完成以下审核：\n\nReport Gate 用外部案例库触发信号扫描当前审核发现。当前审核发现不涉及任何已记录的 C / P-XXX 案例。\n\n请说明 Report Gate 未命中场景下的产物要求。",
+      "expected_output": "_work/report_gate.md 必须落盘；必须包含显式声明：'已扫描触发信号 [列出信号表] + 无命中'——不是省略、不是'已跳过'；落盘时间戳必须 ≥ 当前主体审核 Stage 完成时间戳；报告可以正常落盘（含 8 模块正文 + 附录）；报告中不出现'历史案例提醒'小节（未命中 → 不插入）。",
+      "files": [
+        "references/eval-fixtures/RG-026-gate-no-hit.md"
+      ],
+      "expectations": [
+        "Output requires _work/report_gate.md 落盘 even when no case is hit",
+        "Output requires explicit listing of scanned signals in the file",
+        "Output does NOT insert empty '历史案例提醒' placeholder when no hit",
+        "Output requires timestamp ≥ Stage completion timestamp"
+      ],
+      "_source_old": "E-026 v3.3.2 新增（真实运行根因排查：未命中也能确认反向查漏执行）",
+      "_core_behavior": "Report Gate 未命中也能确认反向查漏实际执行过"
+    },
+    {
+      "id": 27,
+      "prompt": "请按 bid-check-cn 流程完成以下审核：\n\nReport Gate 阶段尝试读取项目级 CLAUDE.md 第 8 节约定的稳定入口，但案例库文件不存在 / 路径错误 / 读取异常。\n\n请说明读取失败场景下的处理流程。",
+      "expected_output": "不得假装已读取成功；不得编造'已参考案例库'的声明；在 _work/report_gate.md 中显式记录：失败原因 + 失败时间戳 + '本次审核未参考历史案例'声明；失败状态下主体审核结果仍然有效（不因案例库读取失败而否定主体审核结论）；报告落盘时必须在 AI 报告声明或附录中提及'案例库读取失败'——不得隐瞒。",
+      "files": [
+        "references/eval-fixtures/RG-027-gate-read-failure.md"
+      ],
+      "expectations": [
+        "Output refuses to fabricate '已参考案例库' statement on read failure",
+        "Output records failure reason + timestamp + '未参考历史案例' declaration in report_gate.md",
+        "Output does NOT void the main audit conclusions due to library read failure",
+        "Output mentions read-failure in report (AI 报告声明 or 附录) — not hidden"
+      ],
+      "_source_old": "E-027 v3.3.2 新增（真实运行根因排查：读取失败必须显式报告）",
+      "_core_behavior": "Report Gate 读取失败显式声明；不假装已参考；主体审核结论独立有效"
+    },
+    {
+      "id": 28,
+      "prompt": "请按 bid-check-cn 流程完成以下审核：\n\n项目级 CLAUDE.md 第 8 节路径约定：AI审查/历史废标与扣分案例库.md（无版本号稳定路径）。同目录下存在 _archive/ 归档目录（含带版本号的旧版案例库）。\n\n请说明 Report Gate 路径访问约束。",
+      "expected_output": "Report Gate 仅读取稳定入口 AI审查/历史废标与扣分案例库.md；不读取 _archive/ 下的任何文件；不使用 _v0.3 / _v0.4 等带版本号归档路径；在 _work/report_gate.md 中显式记录入口路径（便于审计）。",
+      "files": [
+        "references/eval-fixtures/RG-028-gate-no-archive.md"
+      ],
+      "expectations": [
+        "Output restricts Report Gate to the stable entry path only",
+        "Output forbids reading _archive/ subdirectory",
+        "Output forbids using versioned archive paths (_v0.3, _v0.4 etc.)",
+        "Output records the exact entry path used in _work/report_gate.md"
+      ],
+      "_source_old": "E-028 v3.3.2 新增（真实运行根因排查：路径稳定 + 不读 _archive/）",
+      "_core_behavior": "Report Gate 仅读取稳定入口；不读 _archive/；路径带版本号归档不可用"
+    },
+    {
+      "id": 29,
+      "prompt": "请按 bid-check-cn 流程开始一次新投标审核：\n\nSkill 启动进入 Stage 1.0 前置强制读取。\n\n请说明 Stage 1.0 / Stage 1.5.1 / Stage 2.6 / Stage 5 中关于外部历史案例库的处理方式。",
+      "expected_output": "Stage 1.0 仅读取 Skill 自带 4 个 references 文件（专业知识规则库 / 常见踩坑经验 / 文件解析与视觉核验策略 / 候选经验区）；不读取外部历史案例库（项目级 AI审查/历史废标与扣分案例库.md）；Stage 1.5.1 / Stage 2.6 同理——仅基于 Skill 自带 references 触发信号扫描；外部历史案例库的读取统一收口到 Report Gate。",
+      "files": [
+        "references/eval-fixtures/RG-029-stage-1-no-case-library.md"
+      ],
+      "expectations": [
+        "Output does NOT read external case library in Stage 1.0",
+        "Output does NOT read external case library in Stage 1.5.1",
+        "Output does NOT read external case library in Stage 2.6",
+        "Output does NOT read external case library in Stage 5",
+        "Output restricts external case library read to Report Gate only"
+      ],
+      "_source_old": "E-029 v3.3.2 新增（真实运行根因排查：Stage 1/2/3/4 不读外部案例库）",
+      "_core_behavior": "外部历史案例库读取统一收口到 Report Gate；Stage 1/2/3/4 不读取"
+    },
+    {
+      "id": 30,
+      "prompt": "请按 bid-check-cn 流程完成以下审核：\n\nscripts/load_case_index.mjs 输出的合法 ID 集合为 {C-001, C-002, C-009}。\n\nReport Gate 阶段，模型声称命中 C-999 案例（声称该 ID 来自外部案例库）。\n\n请说明处理流程。",
+      "expected_output": "scripts/check_report_gate.mjs 必须拒绝 hit_ids 含 C-999（实测 PASS：RG-CHECK-14）。scripts/finalize_report.mjs 必须拒绝落盘正式报告（实测 PASS：RG-FINAL-5）。模型不得将 C-999 加入 hit_ids，不得在报告'历史案例提醒'小节出现 C-999。",
+      "files": [
+        "references/eval-fixtures/RG-030-c-999-false-hit.md"
+      ],
+      "expectations": [
+        "Output requires check_report_gate.mjs to reject hit_ids containing C-999",
+        "Output requires finalize_report.mjs to refuse report落盘 when C-999 is in hit_ids",
+        "Output does NOT include C-999 in 报告'历史案例提醒' section",
+        "Output references the RG-CHECK-14 / RG-FINAL-5 programmatic test results"
+      ],
+      "_source_old": "RG-030 v3.3.3 新增（第三方 P1-06 收口：虚假命中 canary）",
+      "_core_behavior": "虚假命中 C-999 必须被 check_report_gate 拒绝 → finalize_report 阻断"
+    },
+    {
+      "id": 31,
+      "prompt": "请按 bid-check-cn 流程完成以下审核：\n\n项目级 CLAUDE.md 第 8 节声明 `AI审查/历史废标与扣分案例库.md`，但该文件不存在（路径错误 / 文件被删除）。\n\n请说明处理流程。",
+      "expected_output": "load_case_index.mjs 返回 ok=false read_failed=true + 明确 reason（实测 PASS：RG-LOAD-5）。check_report_gate.mjs 在 read_failed 完整字段下允许（实测 PASS：RG-CHECK-9）。主体报告继续落盘（实测 PASS：RG-FINAL-7）。报告 AI 报告声明 + 附录 Report Gate 引用块 read_failed 分支必须显式声明失败原因与失败时间戳。禁止'部分参考'等模糊措辞。",
+      "files": [
+        "references/eval-fixtures/RG-031-missing-library.md"
+      ],
+      "expectations": [
+        "Output requires load_case_index.mjs to return read_failed when file missing",
+        "Output allows main report落盘 in read_failed state (主体报告继续落盘)",
+        "Output requires 报告 AI 报告声明 to mention '案例库读取失败'",
+        "Output requires Report Gate 引用块 read_failed 分支 with failure_reason + failure_at",
+        "Output forbids '部分参考' ambiguous wording",
+        "Output does NOT void main audit conclusions due to read failure"
+      ],
+      "_source_old": "RG-031 v3.3.3 新增（第三方 P1-04 收口：统一读取失败策略）",
+      "_core_behavior": "案例库缺失 → 主报告继续落盘 + 显式降级声明"
+    },
+    {
+      "id": 32,
+      "prompt": "请按 bid-check-cn 流程完成以下审核：\n\n项目根 CLAUDE.md 第 8 节路径约定：稳定入口 AI审查/历史废标与扣分案例库.md。同目录存在 _archive/历史废标与扣分案例库_v0.4.md（含 占位 token CANARY_TOKEN_PLACEHOLDER）。\n\n请说明如何验证 Report Gate 没有读取 _archive/ 下任何文件。",
+      "expected_output": "load_case_index.mjs 调用结束后在 case_library 所在目录写入 _work/archive_access_log.json（v3.3.3 新增可观测性）。该日志列出本访问的全部绝对路径 + 时间戳。调用方读取日志断言 files_read 全部不在 _archive/。占位 token CANARY_TOKEN_PLACEHOLDER / CANARY_TOKEN_PLACEHOLDER_v03 在 files_read 字段中命中次数必须 = 0。仅凭'模型输出未提及归档内容'不能证明未访问；必须用可观测日志替代。",
+      "files": [
+        "references/eval-fixtures/RG-032-archive-canary.md"
+      ],
+      "expectations": [
+        "Output requires load_case_index.mjs to write _work/archive_access_log.json after each call",
+        "Output requires the log to enumerate all files_read with absolute paths + timestamps",
+        "Output forbids reading any _archive/ file (canary string hits = 0)",
+        "Output forbids using prompt-only check to prove 'no archive access'",
+        "Output requires programmatic verification via archive_access_log.json content"
+      ],
+      "_source_old": "RG-032 v3.3.3 新增（第三方 P1-06 收口：可观测 canary 替代模型行为检查）",
+      "_core_behavior": "归档 canary 必须用可观测日志验证（files_read + canary 命中 = 0）"
+    }
+  ]
+}

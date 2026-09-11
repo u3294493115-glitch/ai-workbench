@@ -1,0 +1,30 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node / script temp
+node_modules/
+*.log
+npm-debug.log*
+
+# v3.1.0 真实投标样本地毯式排除（不入 git）
+# 仅在本地 smoke test 使用，路径模式宽松避免真实投标文件流入 git
+scripts/__tests__/smoke_real/
+**/充电桩/02-上海芦潮港等/input/投标文件/
+**/input/投标文件/顺新/
+**/桩02-上海芦潮港等/input/投标文件/
+
+# v3.1.0 T1-T10 测试重新生成的中间产物
+scripts/__tests__/fixtures/recon_out/
+
+# v3.1.0 实验 / smoke 数据（不入 git）
+output/_work/smoke/
+output/_work/experiments/
+output/_work/test-runs/

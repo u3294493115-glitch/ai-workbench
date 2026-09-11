@@ -1,0 +1,45 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node
+node_modules/
+*.log
+npm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ===== bid-check-cn Skill 内部 =====
+
+# v3.1.0 真实投标样本地毯式排除（不入 git）
+scripts/__tests__/smoke_real/
+**/input/投标文件/
+**/input/招标/
+
+# v3.1.0 T1-T10 测试重新生成的中间产物
+scripts/__tests__/fixtures/recon_out/
+
+# 测试运行产物（不入 git）
+scripts/py/__tests__/test-runs/
+scripts/__tests__/test-runs/
+
+# 临时实验 / smoke 数据（不入 git）
+skills/bid-check-cn/output/_work/smoke/
+skills/bid-check-cn/output/_work/experiments/
+skills/bid-check-cn/output/_work/test-runs/
+
+# 用户环境相关
+*.local
+.env
+.env.local
